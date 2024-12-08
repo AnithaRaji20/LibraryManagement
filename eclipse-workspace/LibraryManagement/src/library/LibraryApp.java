@@ -36,8 +36,10 @@ public class LibraryApp {
             System.out.println("2. Search for books");
             System.out.println("3. Check out a book (Customer)");
             System.out.println("4. Check out a book (Staff)");
-            System.out.println("5. Display all transactions");
-            System.out.println("6. Exit");
+            System.out.println("5. Return a book");
+            System.out.println("6. Display all transactions");  
+            System.out.println("7. Show overdue books");
+            System.out.println("8. Exit");
             System.out.print("Enter your choice: ");
             
             int choice = scanner.nextInt();
@@ -166,11 +168,25 @@ public class LibraryApp {
                     }
                     break;
                 case 5:
+                    // Return a book
+                    System.out.print("Enter book title to return: ");
+                    String bookTitleToReturn = scanner.nextLine();
+                    Book bookToReturn = library.findBookByTitle(bookTitleToReturn);
+                    if (bookToReturn != null) {
+                        library.returnBook(bookToReturn);
+                    } else {
+                        System.out.println("Book not found!");
+                    }
+                    break;
+                case 6:
                     // Display all transactions
                     System.out.println("\nAll Transactions:");
                     library.displayTransactions();
                     break;
-                case 6:
+                case 7:
+                    library.showOverdueBooks();
+                    break;
+                case 8:
                     // Exit the program
                     System.out.println("Exiting the library system.");
                     scanner.close();
