@@ -146,6 +146,34 @@ public class Library {
         }
     }
     
+    public void returnBook(Book book) {
+        if (!book.isCheckedOut()) {
+            throw new IllegalArgumentException("The book was not checked out."); // Unchecked exception (runtime exceptions)
+        }
+        book.returnBook();  // Change the book status to AVAILABLE or whatever status is appropriate after return
+
+        // Handle transactions involving customers (Customer-related return)
+        transactions.stream()
+                    .filter(t -> t.getBook().equals(book))
+                    .forEach(t -> System.out.println("Customer returned: " + t)); 
+
+        // Handle transactions involving staff (Staff-related return)
+        bookTransactions.stream()
+                        .filter(t -> t.book().equals(book)) // Matching by book in BookTransaction
+                        .forEach(t -> System.out.println("Staff returned: " + t)); 
+    }
+    
+    public List<Book> filterBooks(Predicate<Book> condition) {
+        return books.stream().filter(condition).collect(Collectors.toList());
+    }
+
+    public void showOverdueBooks() {
+    	//predicate is used here to check whether the status of the book is overdue or not 
+        Predicate<Book> overduePredicate = book -> book.getStatus() == BookStatus.OVERDUE;
+        var overdueBooks = filterBooks(overduePredicate);
+        overdueBooks.forEach(System.out::println);
+    }
+    
     public Customer findCustomerByName(String name) {
         for (Customer customer : customers) {
             if (customer.getName().equalsIgnoreCase(name)) {
