@@ -174,6 +174,17 @@ public class Library {
         overdueBooks.forEach(System.out::println);
     }
     
+    //Null case matching - java 22 enhancement
+    public void printBookStatus(Book book) {
+        switch (book.getStatus()) {
+            case AVAILABLE -> System.out.println("The book is available.");
+            case CHECKED_OUT -> System.out.println("The book is checked out.");
+            case OVERDUE -> System.out.println("The book is overdue.");
+            case null -> System.out.println("Book status is unknown."); 
+            default -> throw new IllegalStateException("Unexpected value: " + book.getStatus());
+        }
+    }
+    
     public Customer findCustomerByName(String name) {
         for (Customer customer : customers) {
             if (customer.getName().equalsIgnoreCase(name)) {

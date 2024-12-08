@@ -39,7 +39,8 @@ public class LibraryApp {
             System.out.println("5. Return a book");
             System.out.println("6. Display all transactions");  
             System.out.println("7. Show overdue books");
-            System.out.println("8. Exit");
+            System.out.println("8. Check book status");
+            System.out.println("9. Exit");
             System.out.print("Enter your choice: ");
             
             int choice = scanner.nextInt();
@@ -187,6 +188,17 @@ public class LibraryApp {
                     library.showOverdueBooks();
                     break;
                 case 8:
+                    // Check book status
+                    System.out.print("Enter book title to check status: ");
+                    String bookTitleForStatus = scanner.nextLine();
+                    Book bookForStatus = library.findBookByTitle(bookTitleForStatus);
+                    if (bookForStatus != null) {
+                        library.printBookStatus(bookForStatus); 
+                    } else {
+                        System.out.println("Book not found!");
+                    }
+                    break;
+                case 9:
                     // Exit the program
                     System.out.println("Exiting the library system.");
                     scanner.close();
