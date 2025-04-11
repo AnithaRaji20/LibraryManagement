@@ -17,8 +17,6 @@ public class LibraryApp {
         int langChoice = scanner.nextInt();
         scanner.nextLine();
 
-        
-        
         Locale locale;
         switch(langChoice) {
         case 1 -> locale = Locale.ENGLISH;
@@ -54,8 +52,6 @@ public class LibraryApp {
             System.out.println("6. Display all transactions");
             System.out.println("7. Show overdue books");
             System.out.println("8. Check book status");
-            System.out.println("9. Group books by author");
-            System.out.println("10. Partition books by availability");
             System.out.println("9. Sorting Using Comparator");
             System.out.println("10. Concurrent checkout (Customer)");
             System.out.println("11. Display logged transactions");
