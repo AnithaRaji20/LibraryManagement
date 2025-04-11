@@ -14,6 +14,7 @@ public class Library {
     private List<Staff> staffs = new ArrayList<>();
     private List<Transaction> transactions = new ArrayList<>();; // List to store transactions
     private List<BookTransaction> bookTransactions = new ArrayList<>();
+    private BookSorter bookSorter;
     private Map<String, Book> bookMap;
 
     public Library() {
@@ -186,6 +187,19 @@ public class Library {
             default -> throw new IllegalStateException("Unexpected value: " + book.getStatus());
         }
     }
+    
+    public List<Book> getBooksSortedByTitle() {
+        return this.bookSorter.sortBooksByTitle(this.bookMap.values().stream().toList());
+    }
+
+    public List<Book> getBooksSortedByAuthor() {
+        return this.bookSorter.sortBooksByAuthor(this.bookMap.values().stream().toList());
+    }
+
+    public List<Book> getBooksSortedByCheckoutDate() {
+        return this.bookSorter.sortBooksByCheckoutDate(this.bookMap.values().stream().toList());
+    }
+
     
     public Customer findCustomerByName(String name) {
         for (Customer customer : customers) {
