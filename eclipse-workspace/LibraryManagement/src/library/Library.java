@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -13,6 +14,7 @@ public class Library {
     private List<Staff> staffs = new ArrayList<>();
     private List<Transaction> transactions = new ArrayList<>();; // List to store transactions
     private List<BookTransaction> bookTransactions = new ArrayList<>();
+    private Map<String, Book> bookMap;
 
     public Library() {
         this.books = new ArrayList<>();
@@ -212,6 +214,13 @@ public class Library {
         return null; 
     }
     
+    public Map<String, List<Book>> groupBooksByAuthor() {
+        return (Map)this.books.stream().collect(Collectors.groupingBy(Book::getAuthor));
+    }
+    
+    public Map<Boolean, List<Book>> partitionByAvailability() {
+        return (Map)this.books.stream().collect(Collectors.partitioningBy((book) -> book.getStatus() == BookStatus.AVAILABLE));
+    }
    
 	public Transaction getLatestTransaction() {
         if (transactions.isEmpty()) {
