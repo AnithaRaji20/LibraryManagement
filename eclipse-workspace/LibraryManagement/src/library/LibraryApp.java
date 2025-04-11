@@ -8,6 +8,31 @@ public class LibraryApp {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
+        // Language selection
+        System.out.println("Select language:");
+        System.out.println("1. English");
+        System.out.println("2. FRENCH");
+        System.out.println("3. GERMAN");
+        System.out.print("Enter your choice (1-3): ");
+        int langChoice = scanner.nextInt();
+        scanner.nextLine();
+
+        
+        
+        Locale locale;
+        switch(langChoice) {
+        case 1 -> locale = Locale.ENGLISH;
+        case 2 -> locale = Locale.FRENCH;
+        case 3 -> locale = Locale.GERMAN;
+        default -> {
+        	System.out.println("Invalid choice, defaulting to English.");
+        	locale = Locale.ENGLISH;
+        	}
+        }
+
+        Library library = new Library(locale);
+        LocalizationManager locManager = new LocalizationManager(locale);
+
         // Initialize sample data
         List<Book> booksList = SampleBooks.createBooks();
         booksList.forEach(library::addBook);

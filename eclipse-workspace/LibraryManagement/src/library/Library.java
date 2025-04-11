@@ -19,6 +19,7 @@ public class Library {
     private List<BookTransaction> bookTransactions = new ArrayList<>();
     private Map<String, Book> bookMap;
     private BookSorter bookSorter;
+    private LocalizationManager locManager;
 
     public Library(Locale locale) {
         this.books = new ArrayList<>();
@@ -26,6 +27,7 @@ public class Library {
         this.bookTransactions = new ArrayList<>();
         this.bookMap = new HashMap<>();
         this.bookSorter = new BookSorter();
+        this.locManager = new LocalizationManager(locale);
     }
 
     public void addBook(Book book) {
