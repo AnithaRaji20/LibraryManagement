@@ -3,8 +3,11 @@ package library;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -14,13 +17,15 @@ public class Library {
     private List<Staff> staffs = new ArrayList<>();
     private List<Transaction> transactions = new ArrayList<>();; // List to store transactions
     private List<BookTransaction> bookTransactions = new ArrayList<>();
-    private BookSorter bookSorter;
     private Map<String, Book> bookMap;
+    private BookSorter bookSorter;
 
-    public Library() {
+    public Library(Locale locale) {
         this.books = new ArrayList<>();
         this.transactions = new ArrayList<>();
         this.bookTransactions = new ArrayList<>();
+        this.bookMap = new HashMap<>();
+        this.bookSorter = new BookSorter();
     }
 
     public void addBook(Book book) {
@@ -34,6 +39,16 @@ public class Library {
     public void addStaff(Staff staff) {
         staffs.add(staff);
     }
+    
+    public void addBookByIsbn(Book book) {
+        bookMap.put(book.getIsbn(), book);
+    }
+
+    public Book getBookByIsbn(String isbn) {
+        return bookMap.get(isbn);
+    }
+
+    
     
     public void displayBooks() {
     	StringBuilder builder = new StringBuilder();
@@ -55,7 +70,7 @@ public class Library {
 
     public void checkoutBook(Book book, Customer customer, LocalDate checkoutDate, PaymentStatus paymentStatus) 
             throws IllegalArgumentException, InvalidCheckoutDateException  {
-      
+    	
     	long checkedOutBooks = 0;
 
     	// Inform the user about the maximum books allowed for the customer
@@ -70,7 +85,7 @@ public class Library {
         }
 
         if (checkoutDate.isAfter(LocalDate.now())) {
-            throw new InvalidCheckoutDateException("Checkout date cannot be in the Future.");
+            throw new InvalidCheckoutDateException(locManager.getMessage("error.unhandled", "Future checkout date"));
         }
 
         for (Transaction transaction : transactions) {
@@ -82,25 +97,23 @@ public class Library {
 
         // Check if the customer has already checked out the max allowed books
         if (checkedOutBooks >= customer.getMaxBooksAllowed()) {
-            System.out.println("Checkout failed: You have already checked out the maximum allowed books.");
-            return; // Exit the method if the customer has reached their limit
+        	String errorMsg = locManager.getMessage("checkout.failed", book.getTitle(), "max books limit reached");
+            System.out.println(errorMsg);
+        	TransactionLogger.logTransaction(errorMsg);
+        	return;
         }
         
-        // If payment status is provided, check it
         if (paymentStatus != null) {
-            // Validate the payment status (only allow checkout if payment is "Paid")
             if (paymentStatus instanceof Paid) {
                 System.out.println("Payment Completed Successfully");
             } else {
-                // If payment is not completed , we don't allow checkout
                 System.out.println("Checkout failed: " + paymentStatus.statusMessage());
-                return;  // Exit the method as checkout cannot proceed
+                return;  
             }
         }
         
-        // Usage of default method in an interface to check if the book is available
         if (Loanable.isAvailable(book)) {
-            System.out.println("Book is available. Proceeding with checkout...");
+        	System.out.println(locManager.getMessage("book.available"));
             new Loanable() {}.checkout(customer, bookCopy);
             book.setStatus(BookStatus.CHECKED_OUT);
 
@@ -108,11 +121,16 @@ public class Library {
             book.setDueDate(dueDate);
             book.setCheckoutDate(checkoutDate);
             
-            // Record the transaction
             Transaction transaction = new Transaction(book, customer, checkoutDate, dueDate);
             transactions.add(transaction);
+            String successMsg = locManager.getMessage("checkout.successful", book.getTitle());
+            System.out.println(successMsg);
+            TransactionLogger.logTransaction(successMsg + " by " + customer.getName() +
+                    " on " + checkoutDate + ", due " + dueDate);
         } else {
-            System.out.println("Book is not available for checkout.");
+        	String errorMsg = locManager.getMessage("checkout.failed", book.getTitle(), "book unavailable");
+            System.out.println(errorMsg);
+        	TransactionLogger.logTransaction(errorMsg);
         }
     }
 
@@ -122,11 +140,11 @@ public class Library {
     	var checkoutDateLocal = (checkoutDate != null) ? checkoutDate : LocalDate.now();
     	
     	if (checkoutDate.isAfter(LocalDate.now())) {
-             throw new InvalidCheckoutDateException("Checkout date cannot be in the Future.");
+             throw new InvalidCheckoutDateException(locManager.getMessage("error.unhandled", "Future checkout date"));
         }
 
     	if (Loanable.isAvailable(book)) {
-            System.out.println("Book is available. Proceeding with checkout...");
+    		System.out.println(locManager.getMessage("book.available"));
             System.out.println(staff.getName() + " has checked out " + book.getTitle()); 
             book.setStatus(BookStatus.CHECKED_OUT);
             LocalDate dueDate = checkoutDateLocal.plusDays(14); 
@@ -135,9 +153,13 @@ public class Library {
             
 		  BookTransaction recordTransaction = new BookTransaction(book, staff, checkoutDate, dueDate);
 		  bookTransactions.add(recordTransaction);
-    	} else {
-            System.out.println("Book is not available for checkout.");
-        }
+		  TransactionLogger.logTransaction(locManager.getMessage("checkout.successful", book.getTitle()) +
+                  " by staff " + staff.getName() + " on " + checkoutDateLocal + ", due " + dueDate);
+    		} else {
+          String errorMsg = locManager.getMessage("checkout.failed", book.getTitle(), "book unavailable");
+          System.out.println(errorMsg);
+          TransactionLogger.logTransaction(errorMsg + " by staff " + staff.getName());
+    		}
 	 }
 	 
     public void displayTransactions() {
@@ -148,23 +170,43 @@ public class Library {
             bookTransactions.forEach(System.out::println);
         }
     }
-    
+
     public void returnBook(Book book) {
         if (!book.isCheckedOut()) {
-            throw new IllegalArgumentException("The book was not checked out."); // Unchecked exception (runtime exceptions)
-        }
+        	String errorMsg = locManager.getMessage("return.failed", book.getTitle());
+            TransactionLogger.logTransaction(errorMsg + " - Book was not checked out");
+            throw new IllegalArgumentException(errorMsg);
+        	}
         book.returnBook();  // Change the book status to AVAILABLE or whatever status is appropriate after return
 
         // Handle transactions involving customers (Customer-related return)
         transactions.stream()
-                    .filter(t -> t.getBook().equals(book))
-                    .forEach(t -> System.out.println("Customer returned: " + t)); 
+        .filter(t -> t.getBook().equals(book))
+        .forEach(t -> {
+            String successMsg = locManager.getMessage("return.successful", book.getTitle());
+            System.out.println(successMsg);
+            TransactionLogger.logTransaction(successMsg + " by customer " + t.getCustomer().getName());
+        });
 
-        // Handle transactions involving staff (Staff-related return)
         bookTransactions.stream()
-                        .filter(t -> t.book().equals(book)) // Matching by book in BookTransaction
-                        .forEach(t -> System.out.println("Staff returned: " + t)); 
+        .filter(t -> t.book().equals(book))
+        .forEach(t -> {
+            String successMsg = locManager.getMessage("return.successful", book.getTitle());
+            System.out.println(successMsg);
+            TransactionLogger.logTransaction(successMsg + " by staff " + t.staff().getName());
+        });
     }
+    
+    public void displayLoggedTransactions() {
+        List<String> loggedTransactions = TransactionLogger.readTransactions();
+        if (loggedTransactions.isEmpty()) {
+            System.out.println("No transactions logged yet.");
+        } else {
+            System.out.println("\nLogged Transactions:");
+            loggedTransactions.forEach(System.out::println);
+        }
+    }
+    
     
     public List<Book> filterBooks(Predicate<Book> condition) {
         return books.stream().filter(condition).collect(Collectors.toList());
@@ -179,62 +221,55 @@ public class Library {
     
     //Null case matching - java 22 enhancement
     public void printBookStatus(Book book) {
-        switch (book.getStatus()) {
-            case AVAILABLE -> System.out.println("The book is available.");
-            case CHECKED_OUT -> System.out.println("The book is checked out.");
-            case OVERDUE -> System.out.println("The book is overdue.");
-            case null -> System.out.println("Book status is unknown."); 
-            default -> throw new IllegalStateException("Unexpected value: " + book.getStatus());
-        }
+    	LocalizationManager locManager = new LocalizationManager(Locale.getDefault());
+    	switch (book.getStatus()) {
+        case AVAILABLE -> System.out.println(locManager.getMessage("book.available"));
+        case CHECKED_OUT -> System.out.println(locManager.getMessage("book.checkedOut"));
+        case OVERDUE -> System.out.println(locManager.getMessage("book.overdue"));
+        case null -> System.out.println(locManager.getMessage("book.unknownStatus"));
+        default -> throw new IllegalStateException(locManager.getMessage("error.unhandled", book.getStatus()));
+    	}
     }
-    
+
     public List<Book> getBooksSortedByTitle() {
-        return this.bookSorter.sortBooksByTitle(this.bookMap.values().stream().toList());
+        return bookSorter.sortBooksByTitle(bookMap.values().stream().toList());
     }
 
     public List<Book> getBooksSortedByAuthor() {
-        return this.bookSorter.sortBooksByAuthor(this.bookMap.values().stream().toList());
+        return bookSorter.sortBooksByAuthor(bookMap.values().stream().toList());
     }
 
     public List<Book> getBooksSortedByCheckoutDate() {
-        return this.bookSorter.sortBooksByCheckoutDate(this.bookMap.values().stream().toList());
+        return bookSorter.sortBooksByCheckoutDate(bookMap.values().stream().toList());
     }
 
-    
-    public Customer findCustomerByName(String name) {
-        for (Customer customer : customers) {
-            if (customer.getName().equalsIgnoreCase(name)) {
-                return customer;
-            }
-        }
-        return null; 
+    public Customer findCustomerByName(String name, Function<String, String> nameTransformer) {
+        String transformedName = nameTransformer.apply(name);
+        return customers.stream()
+                .filter(c -> c.getName().equalsIgnoreCase(transformedName))
+                .findFirst()
+                .orElse(null);
     }
     
     public Staff findStaffByName(String name) {
-        for (Staff staff : staffs) {
-            if (staff.getName().equalsIgnoreCase(name)) {
-                return staff;
-            }
-        }
-        return null; 
+        return staffs.stream()
+                .filter(s -> s.getName().equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(null);
     }
 
     public Book findBookByTitle(String title) {
-        for (Book book : books) {
-            if (book.getTitle().equalsIgnoreCase(title)) {
-                return book;
-            }
-        }
-        return null; 
+        return books.stream()
+                .filter(b -> b.getTitle().equalsIgnoreCase(title))
+                .findFirst()
+                .orElse(null);
     }
     
     public Map<String, List<Book>> groupBooksByAuthor() {
-        return (Map)this.books.stream().collect(Collectors.groupingBy(Book::getAuthor));
+        return books.stream()
+                    .collect(Collectors.groupingBy(Book::getAuthor));
     }
     
-    public Map<Boolean, List<Book>> partitionByAvailability() {
-        return (Map)this.books.stream().collect(Collectors.partitioningBy((book) -> book.getStatus() == BookStatus.AVAILABLE));
-    }
    
 	public Transaction getLatestTransaction() {
         if (transactions.isEmpty()) {
@@ -243,6 +278,11 @@ public class Library {
         return transactions.get(transactions.size() - 1);
     }
 
+	public Map<Boolean, List<Book>> partitionByAvailability() {
+	    return books.stream()
+	                .collect(Collectors.partitioningBy(book -> book.getStatus() == BookStatus.AVAILABLE));
+	}
+	
 	public class InvalidCheckoutDateException extends Exception {   // checked exception (compile time exceptions)
         public InvalidCheckoutDateException(String message) {
             super(message);
